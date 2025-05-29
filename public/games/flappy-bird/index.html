@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #333;
+        }
+        canvas {
+            border: 2px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="320" height="480"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game variables
+        let bird = {
+            x: 50,
+            y: 200,
+            velocity: 0,
+            gravity: 0.5,
+            jump: -8
+        };
+
+        let pipes = [];
+        let score = 0;
+        let gameOver = false;
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (gameOver) {
+                    resetGame();
+                } else {
+                    bird.velocity = bird.jump;
+                }
+            }
+        });
+
+        canvas.addEventListener('click', () => {
+            if (gameOver) {
+                resetGame();
+            } else {
+                bird.velocity = bird.jump;
+            }
+        });
+
+        function resetGame() {
+            bird.y = 200;
+            bird.velocity = 0;
+            pipes = [];
+            score = 0;
+            gameOver = false;
+        }
+
+        function createPipe() {
+            const gap = 150;
+            const minHeight = 50;
+            const maxHeight = canvas.height - gap - minHeight;
+            const height = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+
+            pipes.push({
+                x: canvas.width,
+                topHeight: height,
+                bottomY: height + gap,
+                passed: false
+            });
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            // Update bird
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            // Check collisions
+            if (bird.y < 0 || bird.y > canvas.height) {
+                gameOver = true;
+            }
+
+            // Update pipes
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+                createPipe();
+            }
+
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                pipes[i].x -= 2;
+
+                // Check collision
+                if (bird.x + 20 > pipes[i].x && bird.x < pipes[i].x + 50) {
+                    if (bird.y < pipes[i].topHeight || bird.y + 20 > pipes[i].bottomY) {
+                        gameOver = true;
+                    }
+                }
+
+                // Score points
+                if (!pipes[i].passed && pipes[i].x < bird.x) {
+                    pipes[i].passed = true;
+                    score++;
+                }
+
+                // Remove off-screen pipes
+                if (pipes[i].x < -50) {
+                    pipes.splice(i, 1);
+                }
+            }
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#70c5ce';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw bird
+            ctx.fillStyle = '#f8e71c';
+            ctx.fillRect(bird.x, bird.y, 20, 20);
+
+            // Draw pipes
+            ctx.fillStyle = '#73bf2e';
+            pipes.forEach(pipe => {
+                ctx.fillRect(pipe.x, 0, 50, pipe.topHeight);
+                ctx.fillRect(pipe.x, pipe.bottomY, 50, canvas.height - pipe.bottomY);
+            });
+
+            // Draw score
+            ctx.fillStyle = '#fff';
+            ctx.font = '24px Arial';
+            ctx.fillText(score, 10, 30);
+
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#fff';
+                ctx.font = '48px Arial';
+                ctx.fillText('Game Over', 50, canvas.height / 2);
+                ctx.font = '24px Arial';
+                ctx.fillText('Click or press Space to restart', 40, canvas.height / 2 + 40);
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html> 
